@@ -5,16 +5,31 @@ const router = Router();
 
 // Create new user
 router.post('/users', async (req, res) => {
-  console.log(req.body);
-  const initUser = new UserList(req.body);
+  // Create new user
+  const user = new UserList(req.body);
   try {
-    const user = await initUser.save();
-
+    // Save user
+    await user.save();
+    // Generate token
+    const token = await user.generateAuthToken();
+    // Check
     if (!user) res.status(404).send();
-
-    res.status(201).send(user);
+    // SEND data
+    res.status(201).send({ user, token });
   } catch (error) {
     res.status(400).send(error);
+  }
+});
+
+// LOGIN
+router.post('/users/login', async (req, res) => {
+  const { password, email } = req.body;
+  try {
+    const user = await UserList.findAndLogin(password, email);
+    const token = await user.generateAuthToken();
+    res.send({ user, token });
+  } catch (error) {
+    res.status(400).send();
   }
 });
 
@@ -46,15 +61,18 @@ router.get('/user/:id', async (req, res) => {
 // Update user
 router.patch('/user/:id', async (req, res) => {
   const { id } = req.params;
-
+  // Get all object keys from user model
+  const keys = Object.keys(req.body);
   try {
-    const user = await UserList.findByIdAndUpdate({ _id: id }, req.body, {
-      new: true,
-      runValidators: true,
-    });
-
+    // Find user by ID
+    const user = await UserList.findById(id);
+    // Update user each object key
+    keys.forEach(key => (user[key] = req.body[key]));
+    // Save to db
+    await user.save();
+    // If not found user, send error
     if (!user) res.status(404).send();
-
+    // If OK, show user data
     res.send(user);
   } catch (error) {
     res.status(400).send(error);

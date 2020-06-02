@@ -9,11 +9,9 @@ const startServer = async () => {
         useNewUrlParser: true,
         useUnifiedTopology: true,
         useFindAndModify: false,
+        useCreateIndex: true
       }
     );
-    // if (!data) {
-    //   throw new Error('Connection to database is failed');
-    // }
     console.log(chalk.inverse.cyan(' Connected to database... '));
     return data;
   } catch (error) {

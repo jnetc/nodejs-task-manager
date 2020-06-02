@@ -31,3 +31,19 @@ app.use(page404);
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(chalk.inverse.green(' Server running...')));
+
+// const jwt = require('jsonwebtoken')
+
+// const myFunc = async() => {
+//   const token = jwt.sign({ _id: 'dadwesf'}, 'hello')
+//   console.log(token);
+  
+//   const data = jwt.verify(token, 'hello')
+//   const user = jwt.decode(token)
+//   console.log(data);
+//   console.log(user);
+  
+
+// }
+
+// myFunc()
