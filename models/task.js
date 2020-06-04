@@ -11,6 +11,11 @@ const task = new TaskList({
     type: Boolean,
     default: false
   },
+  owner: {
+    type: Schema.Types.ObjectId,
+    required: true,
+    ref: 'User'
+  }
 });
 
-module.exports = model('Tasks', task);
+module.exports = model('Task', task);

@@ -3,6 +3,9 @@ const { isEmail } = require('validator');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
+// Model
+const Task = require('./task.js')
+
 const userSchema = new Schema({
   name: {
     type: String,
@@ -41,22 +44,35 @@ const userSchema = new Schema({
       }
     },
   },
-  tokens: [{
-    _id: false,
-    token: {
-      type: String,
-      required: true
-    }
-  }],
-  tasks: [
+  tokens: [
     {
-      userId: {
-        type: Schema.Types.ObjectId,
-        ref: 'Tasks',
+      _id: false,
+      token: {
+        type: String,
+        required: true,
       },
     },
   ],
 });
+
+// Virtual path for merge TASKS without writing to DB empty tasks array
+userSchema.virtual('tasks', {
+  ref: 'Task', // Name schema to connect
+  localField: '_id', // User schema key need
+  foreignField: 'owner', // Task schema key need
+});
+
+// Hiding PRIVATE data
+userSchema.methods.toJSON = function () {
+  const user = this;
+
+  const hidingKeys = user.toObject();
+  // delete keys for hiding user data
+  delete hidingKeys.password;
+  delete hidingKeys.tokens;
+
+  return hidingKeys;
+};
 
 // LOGIN function
 // Find by pawwsord and email
@@ -77,22 +93,35 @@ userSchema.statics.findAndLogin = async (password, email) => {
 // GENERATE TOKEN
 userSchema.methods.generateAuthToken = async function () {
   const user = this;
-    // Create token from user ID + secret word
-  const token = jwt.sign({ _id: user._id.toString() }, 'hellopasword');
-  // 
-  user.tokens = user.tokens.concat({token})
-  await user.save()
+  // Create token from user ID + secret word + expires time
+  const token = jwt.sign({ _id: user._id.toString() }, 'hellopasword', {
+    expiresIn: '2d',
+  });
+  // Tokens
+  user.tokens = user.tokens.concat({ token });
+  // Save user schema to tokens for session (login with other devices)
+  await user.save();
+  // Return USER TOKEN!!!!
+  return token;
 };
 
 // BCRYPT password
 // Middleware before saving user data
 // isModified - mongoose method
-userSchema.pre('save', async function () {
+userSchema.pre('save', async function (next) {
   const user = this;
   if (user.isModified('password')) {
     user.password = await bcrypt.hash(user.password, 8);
   }
+  next()
 });
+
+// Delete user tasks when user is removed
+userSchema.pre('remove', async function (next) {
+  const user = this
+  await Task.deleteMany({owner: user._id })
+  next()
+})
 
 // Create user model for use in statics method
 const User = model('User', userSchema);

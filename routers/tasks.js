@@ -1,16 +1,19 @@
-const { Router } = require('express')
-const TaskList = require('../models/task');
+const { Router } = require('express');
+// Middleware
+const auth = require('../middleware/auth');
+// Model
+const Task = require('../models/task');
 
-const router = Router()
+const router = Router();
 
 // Create new task
-router.post('/tasks', async (req, res) => {
-  console.log(req.body);
-  const initTask = new TaskList(req.body);
+router.post('/tasks', auth, async (req, res) => {
+  const task = new Task({
+    ...req.body,
+    owner: req.user._id,
+  });
   try {
-    const task = await initTask.save();
-    if (!task) res.status(404).send();
-
+    await task.save();
     res.status(201).send(task);
   } catch (error) {
     res.status(400).send(error);
@@ -18,69 +21,63 @@ router.post('/tasks', async (req, res) => {
 });
 
 // Get all tasks
-router.get('/', async (req, res) => {
+router.get('/', auth, async (req, res) => {
   try {
-    const tasks = await TaskList.find({});
-
-    if (!tasks) res.status(404).send();
-  
-    res.render('index.ejs', {
-      title: 'Home page',
-      h1: 'Hello express - ejs',
-      tasks,
-    });
+    const tasks = await Task.find({owner: req.user._id});
+    res.send(tasks)
   } catch (error) {
     res.status(500).send(error);
   }
 });
 
 // Get one task
-router.get('/tasks/:id', async (req, res) => {
-  const id = req.params.id;
-  console.log(id);
+router.get('/tasks/:id', auth, async (req, res) => {
   try {
-    const task = await TaskList.findById(id);
+    const task = await Task.findOne({
+      _id: req.params.id,
+      owner: req.user._id,
+    });
 
     if (!task) res.status(404).send();
 
-    res.status(200).send(task);
+    res.send(task);
   } catch (error) {
-    res.status(500).send(error);
+    res.status(500).send();
   }
 });
-
 
 // Update task
-router.patch('/task/:id', async (req, res) => {
-  const id = req.params.id;
-  const keys = Object.keys(req.body)
+router.patch('/task/:id', auth, async (req, res) => {
+  const _id = req.params.id;
+  const keys = Object.keys(req.body);
   try {
-    const task = await TaskList.findById(id)
-    keys.forEach(key => task[key] = req.body[key])
-    await task.save()
+    const task = await Task.findOne({_id, owner: req.user._id})
+
+    keys.forEach(key => (task[key] = req.body[key]));
+
+    await task.save();
 
     if (!task) res.status(404).send();
 
     res.send(task);
-    // res.redirect('/');
   } catch (error) {
     res.status(400).send(error).redirect('/');
   }
 });
+
 // Delete task
-router.delete('/task/:id', async (req, res) => {
-  const id = req.params.id;
-  
+router.delete('/task/:id', auth, async (req, res) => {
+  const _id = req.params.id;
+
   try {
-    const task = await TaskList.deleteOne({ _id: id });
+    const task = await Task.deleteOne({ _id, owner: req.user._id });
 
     if (!task) res.status(404).send();
 
     res.send(task);
-    // res.redirect('/');
   } catch (error) {
     res.status(400).send(error).redirect('/');
   }
 });
 
-module.exports = router
+module.exports = router;

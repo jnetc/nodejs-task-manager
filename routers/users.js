@@ -1,12 +1,14 @@
 const { Router } = require('express');
-const UserList = require('../models/user');
+const User = require('../models/user');
+// Import middleware
+const auth = require('../middleware/auth');
 
 const router = Router();
 
 // Create new user
 router.post('/users', async (req, res) => {
   // Create new user
-  const user = new UserList(req.body);
+  const user = new User(req.body);
   try {
     // Save user
     await user.save();
@@ -25,7 +27,7 @@ router.post('/users', async (req, res) => {
 router.post('/users/login', async (req, res) => {
   const { password, email } = req.body;
   try {
-    const user = await UserList.findAndLogin(password, email);
+    const user = await User.findAndLogin(password, email);
     const token = await user.generateAuthToken();
     res.send({ user, token });
   } catch (error) {
@@ -33,45 +35,66 @@ router.post('/users/login', async (req, res) => {
   }
 });
 
-// Get all users
-router.get('/users', async (req, res) => {
+// LOGOUT
+router.post('/users/logout', [auth], async (req, res) => {
+  const { tokens } = req.user;
+
   try {
-    const users = await UserList.find({});
-
-    if (!users) res.status(404).send();
-
-    res.status(200).send(users);
+    const keys = tokens.filter(key => {
+      // Not found token return empty arr
+      if (!key.token) {
+        return [];
+      }
+      // Found token return new arr
+      return key.token !== req.token;
+    });
+    // Write filtered arr to user tokens data
+    req.user.tokens = keys;
+    // Save to user request object
+    await req.user.save();
+    res.send(req.user);
   } catch (error) {
-    res.status(500).send(error);
+    res.status(500).send();
   }
 });
 
-// Find user
-router.get('/user/:id', async (req, res) => {
-  const { id } = req.params;
+// LOGOUT from all devices
+router.post('/users/logoutAll', auth, async (req, res) => {
   try {
-    const user = await UserList.findById(id);
-    if (!user) res.status(404).send();
-    res.status(200).send(user);
+    req.user.tokens = [];
+
+    await req.user.save();
+    res.status(200).send(req.user);
   } catch (error) {
-    res.status(500).send(error);
+    res.status(500).send();
   }
+});
+
+// Get all users
+router.get('/users/me', [auth], async (req, res) => {
+  res.send(req.user);
 });
 
 // Update user
-router.patch('/user/:id', async (req, res) => {
-  const { id } = req.params;
-  // Get all object keys from user model
-  const keys = Object.keys(req.body);
+router.patch('/user/me', auth, async (req, res) => {
+  let { user, body } = req;
+  const updates = Object.keys(body);
+  const allowedUpdates = ['name', 'email', 'password', 'age'];
+  const isValidOperation = updates.every(update =>
+    allowedUpdates.includes(update)
+  );
+
+  if (!isValidOperation) {
+    return res.status(400).send({ error: 'Invalid updates!' });
+  }
+
   try {
-    // Find user by ID
-    const user = await UserList.findById(id);
     // Update user each object key
-    keys.forEach(key => (user[key] = req.body[key]));
+    updates.forEach(update => (user[update] = body[update]));
+
     // Save to db
     await user.save();
-    // If not found user, send error
-    if (!user) res.status(404).send();
+
     // If OK, show user data
     res.send(user);
   } catch (error) {
@@ -80,15 +103,10 @@ router.patch('/user/:id', async (req, res) => {
 });
 
 // Delete user
-router.delete('/user/:id', async (req, res) => {
-  const { id } = req.params;
-
+router.delete('/user/me', auth, async (req, res) => {
   try {
-    const user = await UserList.findByIdAndDelete({ _id: id });
-
-    if (!user) res.status(404).send();
-
-    res.send(user);
+    await req.user.remove();
+    res.send(req.user);
   } catch (error) {
     res.status(400).send(error);
   }
