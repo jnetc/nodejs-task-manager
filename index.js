@@ -26,6 +26,15 @@ app.set('render engine', 'ejs');
 app.set('views', 'view');
 
 
+// const multer = require('multer')
+// const upload = multer({
+//   dest: 'images'
+// })
+
+// app.post('/upload', upload.single('upload'), (req, res) => {
+//   res.send()
+// })
+
 // Routers
 app.use(usersRouter);
 app.use(tasksRouter);
@@ -33,18 +42,3 @@ app.use(page404);
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(chalk.inverse.green(' Server running...')));
-
-
-const Task = require('./models/task');
-const User = require('./models/user');
-
-// const main = async() => {
-//   // const task = await Task.findById('5ed9131bf4295214945d90bd')
-//   // await task.populate('owner').execPopulate()
-//   // console.log(task);
-//   const user = await User.findById('5ed91baa472b383d5ca3e0c6')
-//   await user.populate('tasks').execPopulate()
-//   console.log(user.tasks);
-  
-// }
-// main()

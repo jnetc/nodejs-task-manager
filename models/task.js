@@ -7,7 +7,7 @@ const task = new TaskList({
     required: true,
     trim: true
   },
-  complited: {
+  completed: {
     type: Boolean,
     default: false
   },
@@ -16,6 +16,6 @@ const task = new TaskList({
     required: true,
     ref: 'User'
   }
-});
+}, { timestamps: true });
 
 module.exports = model('Task', task);

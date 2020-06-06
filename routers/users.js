@@ -1,8 +1,14 @@
 const { Router } = require('express');
+const multer = require('multer');
+const sharp = require('sharp');
+
+// Model
 const User = require('../models/user');
+
 // Import middleware
 const auth = require('../middleware/auth');
 
+// Init
 const router = Router();
 
 // Create new user
@@ -110,6 +116,66 @@ router.delete('/user/me', auth, async (req, res) => {
   } catch (error) {
     res.status(400).send(error);
   }
+});
+
+// CONFIG MULTER
+const upload = multer({
+  limits: {
+    fileSize: 1000000,
+  },
+  fileFilter(req, file, callback) {
+    // Can use method "match" & expression
+    // Or method "endsWith" for extentions
+    if (!file.originalname.match(/\.(jpeg|jpg|png)$/)) {
+      return callback(new Error('It is not accepted file format'));
+    }
+    callback(null, true);
+  },
+});
+
+// Upload file
+// Add chain to route for handle error json format
+// SHARP package for crop & resize images
+router.post(
+  '/users/me/avatar',
+  [auth, upload.single('avatar')],
+  async (req, res) => {
+    const buffer = await sharp(req.file.buffer)
+      .resize({ width: 550, height: 550 })
+      .webp()
+      .toBuffer();
+    req.user.avatar = buffer;
+
+    await req.user.save();
+    res.send();
+  },
+  (err, req, res, next) => {
+    res.status(400).send({ error: err.message });
+  }
+);
+
+// Get file
+router.get('/users/:id/avatar', async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id);
+
+    if (!user || !user.avatar) {
+      throw new Error();
+    }
+
+    res.set('Content-Type', 'image/webp');
+    res.send(user.avatar);
+  } catch (error) {
+    res.status(404).send();
+  }
+});
+
+// Delete file
+router.delete('/users/me/avatar', auth, async (req, res) => {
+  req.user.avatar = undefined;
+
+  await req.user.save();
+  res.send();
 });
 
 module.exports = router;

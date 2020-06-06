@@ -4,58 +4,65 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
 // Model
-const Task = require('./task.js')
+const Task = require('./task.js');
 
-const userSchema = new Schema({
-  name: {
-    type: String,
-    required: true,
-    trim: true,
-  },
-  email: {
-    type: String,
-    unique: true,
-    required: true,
-    trim: true,
-    lowercase: true,
-    validate(value) {
-      if (!isEmail(value)) {
-        throw new Error('Email is invalid');
-      }
+const userSchema = new Schema(
+  {
+    name: {
+      type: String,
+      required: true,
+      trim: true,
     },
-  },
-  password: {
-    type: String,
-    required: true,
-    trim: true,
-    minlength: 6,
-    validate(value) {
-      if (value.toLowerCase().includes('password')) {
-        throw new Error(`Password doesn't contain "password"`);
-      }
-    },
-  },
-  age: {
-    type: Number,
-    default: 0,
-    validate(value) {
-      if (value < 0) {
-        throw new Error('Age must be apositive number');
-      }
-    },
-  },
-  tokens: [
-    {
-      _id: false,
-      token: {
-        type: String,
-        required: true,
+    email: {
+      type: String,
+      unique: true,
+      required: true,
+      trim: true,
+      lowercase: true,
+      validate(value) {
+        if (!isEmail(value)) {
+          throw new Error('Email is invalid');
+        }
       },
     },
-  ],
-});
+    password: {
+      type: String,
+      required: true,
+      trim: true,
+      minlength: 6,
+      validate(value) {
+        if (value.toLowerCase().includes('password')) {
+          throw new Error(`Password doesn't contain "password"`);
+        }
+      },
+    },
+    age: {
+      type: Number,
+      default: 0,
+      validate(value) {
+        if (value < 0) {
+          throw new Error('Age must be apositive number');
+        }
+      },
+    },
+    tokens: [
+      {
+        _id: false,
+        token: {
+          type: String,
+          required: true,
+        },
+      },
+    ],
+    avatar: {
+      type: Buffer,
+    },
+  },
+  { timestamps: true }
+);
 
-// Virtual path for merge TASKS without writing to DB empty tasks array
+// Was some problem with virtual, can't find data from Task
+// Solved - restart server!!!
 userSchema.virtual('tasks', {
   ref: 'Task', // Name schema to connect
   localField: '_id', // User schema key need
@@ -70,6 +77,7 @@ userSchema.methods.toJSON = function () {
   // delete keys for hiding user data
   delete hidingKeys.password;
   delete hidingKeys.tokens;
+  delete hidingKeys.avatar;
 
   return hidingKeys;
 };
@@ -113,15 +121,15 @@ userSchema.pre('save', async function (next) {
   if (user.isModified('password')) {
     user.password = await bcrypt.hash(user.password, 8);
   }
-  next()
+  next();
 });
 
 // Delete user tasks when user is removed
 userSchema.pre('remove', async function (next) {
-  const user = this
-  await Task.deleteMany({owner: user._id })
-  next()
-})
+  const user = this;
+  await Task.deleteMany({ owner: user._id });
+  next();
+});
 
 // Create user model for use in statics method
 const User = model('User', userSchema);
