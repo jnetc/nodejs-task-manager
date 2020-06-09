@@ -3,7 +3,7 @@ const { Router } = require('express');
 const auth = require('../middleware/auth');
 // Model
 const Task = require('../models/task');
-
+// Init roiter
 const router = Router();
 
 // Create new task
