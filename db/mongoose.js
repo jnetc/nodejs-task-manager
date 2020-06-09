@@ -4,7 +4,7 @@ const chalk = require('chalk');
 const startServer = async () => {
   try {
     const data = await mongoose.connect(
-      'mongodb+srv://admin:admin@nodejs-eg0pt.mongodb.net/task',
+      `mongodb+srv://admin:${process.env.MONGODB_URL}@nodejs-eg0pt.mongodb.net/task`,
       {
         useNewUrlParser: true,
         useUnifiedTopology: true,

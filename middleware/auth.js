@@ -7,7 +7,7 @@ const auth = async(req, res, next) => {
       // Get tokent from HEADER by key "Authorization"
     const token = req.header('Authorization').replace('Bearer ', '')
       // Verify token
-    const decode = jwt.verify(token, 'hellopasword')
+    const decode = jwt.verify(token, process.env.JWT)
       // Find current user by decoded ID & token
     const user = await UserList.findOne({ _id: decode._id, 'tokens.token': token })
     // const user = await UserList.findOne({ _id: decode._id, token })

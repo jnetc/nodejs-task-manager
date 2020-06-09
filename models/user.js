@@ -102,7 +102,7 @@ userSchema.statics.findAndLogin = async (password, email) => {
 userSchema.methods.generateAuthToken = async function () {
   const user = this;
   // Create token from user ID + secret word + expires time
-  const token = jwt.sign({ _id: user._id.toString() }, 'hellopasword', {
+  const token = jwt.sign({ _id: user._id.toString() }, process.env.JWT, {
     expiresIn: '2d',
   });
   // Tokens

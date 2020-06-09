@@ -1,6 +1,8 @@
 const express = require('express');
 const path = require('path');
 const chalk = require('chalk');
+// ENV
+require('dotenv').config()
 
 // Connect mongodb
 require('./db/mongoose');
@@ -26,19 +28,12 @@ app.set('render engine', 'ejs');
 app.set('views', 'view');
 
 
-// const multer = require('multer')
-// const upload = multer({
-//   dest: 'images'
-// })
 
-// app.post('/upload', upload.single('upload'), (req, res) => {
-//   res.send()
-// })
 
 // Routers
 app.use(usersRouter);
 app.use(tasksRouter);
 app.use(page404);
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT;
 app.listen(PORT, () => console.log(chalk.inverse.green(' Server running...')));

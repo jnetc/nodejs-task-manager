@@ -8,6 +8,9 @@ const User = require('../models/user');
 // Import middleware
 const auth = require('../middleware/auth');
 
+// Import email handler
+const { sendWelcomeEmail, sendCanceletionEmail } = require('../emails/account');
+
 // Init
 const router = Router();
 
@@ -18,10 +21,10 @@ router.post('/users', async (req, res) => {
   try {
     // Save user
     await user.save();
+    // Sending email to new user
+    await sendWelcomeEmail(user.email, user.name);
     // Generate token
     const token = await user.generateAuthToken();
-    // Check
-    if (!user) res.status(404).send();
     // SEND data
     res.status(201).send({ user, token });
   } catch (error) {
@@ -111,6 +114,7 @@ router.patch('/user/me', auth, async (req, res) => {
 // Delete user
 router.delete('/user/me', auth, async (req, res) => {
   try {
+    await sendCanceletionEmail(req.user.email, req.user.name);
     await req.user.remove();
     res.send(req.user);
   } catch (error) {
